@@ -34,10 +34,12 @@ class UserManager {
     private ArrayList<User> users;
 
     public UserManager() {
-        loadUsersFromFile();//mevcut kullanıcıları dosyadan yükler.
+        loadUsersFromFile();
+        //mevcut kullanıcıları dosyadan yükler.
     }
 
-    public void addUser(User user) {//addUser(User user) yöntemi, verilen bir kullanıcıyı users listesine ekler.
+    public void addUser(User user) {
+        //addUser(User user) yöntemi, verilen bir kullanıcıyı users listesine ekler.
         users.add(user);
     }
 
