@@ -178,6 +178,8 @@ public class Note {
                 if (selectedFolder != null && !fileName.isEmpty()) {
                     String noteContent = noteArea.getText();
                     saveNoteToFile(selectedFolder, fileName, noteContent);
+                    noteArea.setText("");
+                    fileNameField.setText("");
                 } else {
                     JOptionPane.showMessageDialog(newFrame, "Please select a folder and enter a file name!");
                 }
@@ -191,6 +193,8 @@ public class Note {
                 String fileName = fileNameField.getText().trim();
                 if (selectedFolder != null && !fileName.isEmpty()) {
                     deleteNoteFile(selectedFolder, fileName);
+                    noteArea.setText("");
+                    fileNameField.setText("");
                 } else {
                     JOptionPane.showMessageDialog(newFrame, "Please select a folder and enter a file name!");
                 }
