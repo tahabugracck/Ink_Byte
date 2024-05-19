@@ -19,7 +19,7 @@ public class Note {
         userManager = new UserManager();//Kullanıcı yönetimini sağlayan nesnedir.
         frame = new JFrame("Ink Byte");
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        frame.setSize(400, 200);
+        frame.setSize(400, 250);
         frame.setLayout(new GridLayout(2, 2));
         frame.setLocationRelativeTo(null);
         String iconPath = "InkByte_icon.png";
