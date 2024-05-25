@@ -1,7 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.*;
@@ -12,8 +10,8 @@ import java.nio.file.Paths;
 
 
 public class Note {
-    private JFrame frame;
-    private UserManager userManager;//userManager adında bir UserManager nesnesi oluşturulur, bu nesne kullanıcı yönetimi için kullanılır.
+    private final JFrame frame;
+    private final UserManager userManager;//userManager adında bir UserManager nesnesi oluşturulur, bu nesne kullanıcı yönetimi için kullanılır.
 
     public Note() {
         userManager = new UserManager();//Kullanıcı yönetimini sağlayan nesnedir.
@@ -61,33 +59,27 @@ public class Note {
         buttonPanel.add(registerButton);
 
 
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String usernameInput = userName.getText();
-                String passwordInput = new String(password.getPassword());
+        loginButton.addActionListener(e -> {
+            String usernameInput = userName.getText();
+            String passwordInput = new String(password.getPassword());
 
-                if (userManager.authenticateUser(usernameInput, passwordInput)) {
-                    openNewWindow();
-                } else {
-                    JOptionPane.showMessageDialog(frame, "Invalid username or password!");
-                }
+            if (userManager.authenticateUser(usernameInput, passwordInput)) {
+                openNewWindow();
+            } else {
+                JOptionPane.showMessageDialog(frame, "Invalid username or password!");
             }
         });
 
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String usernameInput = userName.getText();
-                String passwordInput = new String(password.getPassword());
+        registerButton.addActionListener(e -> {
+            String usernameInput = userName.getText();
+            String passwordInput = new String(password.getPassword());
 
-                if (userManager.isUsernameTaken(usernameInput)) {
-                    JOptionPane.showMessageDialog(frame, "Username already taken!");//Kullanıcı adı ve şifreyi doğrular. Doğruysa yeni bir pencere açar.
-                } else {
-                    userManager.addUser(new User(usernameInput, passwordInput));
-                    userManager.saveUsersToFile();
-                    JOptionPane.showMessageDialog(frame, "User registered successfully!");//Yeni bir kullanıcı kaydeder ve dosyaya kaydeder.
-                }
+            if (userManager.isUsernameTaken(usernameInput)) {
+                JOptionPane.showMessageDialog(frame, "Username already taken!");//Kullanıcı adı ve şifreyi doğrular. Doğruysa yeni bir pencere açar.
+            } else {
+                userManager.addUser(new User(usernameInput, passwordInput));
+                userManager.saveUsersToFile();
+                JOptionPane.showMessageDialog(frame, "User registered successfully!");//Yeni bir kullanıcı kaydeder ve dosyaya kaydeder.
             }
         });
 
@@ -170,34 +162,28 @@ public class Note {
             }
         });
 
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String selectedFolder = folderList.getSelectedValue();
-                String fileName = fileNameField.getText().trim();
-                if (selectedFolder != null && !fileName.isEmpty()) {
-                    String noteContent = noteArea.getText();
-                    saveNoteToFile(selectedFolder, fileName, noteContent);
-                    noteArea.setText("");
-                    fileNameField.setText("");
-                } else {
-                    JOptionPane.showMessageDialog(newFrame, "Please select a folder and enter a file name!");
-                }
+        saveButton.addActionListener(e -> {
+            String selectedFolder = folderList.getSelectedValue();
+            String fileName = fileNameField.getText().trim();
+            if (selectedFolder != null && !fileName.isEmpty()) {
+                String noteContent = noteArea.getText();
+                saveNoteToFile(selectedFolder, fileName, noteContent, fileListModel);
+                noteArea.setText("");
+                fileNameField.setText("");
+            } else {
+                JOptionPane.showMessageDialog(newFrame, "Please select a folder and enter a file name!");
             }
         });
 
-        deleteButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String selectedFolder = folderList.getSelectedValue();
-                String fileName = fileNameField.getText().trim();
-                if (selectedFolder != null && !fileName.isEmpty()) {
-                    deleteNoteFile(selectedFolder, fileName);
-                    noteArea.setText("");
-                    fileNameField.setText("");
-                } else {
-                    JOptionPane.showMessageDialog(newFrame, "Please select a folder and enter a file name!");
-                }
+        deleteButton.addActionListener(e -> {
+            String selectedFolder = folderList.getSelectedValue();
+            String fileName = fileNameField.getText().trim();
+            if (selectedFolder != null && !fileName.isEmpty()) {
+                deleteNoteFile(selectedFolder, fileName, fileListModel);
+                noteArea.setText("");
+                fileNameField.setText("");
+            } else {
+                JOptionPane.showMessageDialog(newFrame, "Please select a folder and enter a file name!");
             }
         });
 
@@ -209,27 +195,34 @@ public class Note {
     }
 
     //saveNoteToFile(String folder, String fileName, String content) yöntemi, belirli bir klasöre ve dosya adına sahip bir metin dosyasına notu kaydeder.
-    private void saveNoteToFile(String folder, String fileName, String content) {
+    private void saveNoteToFile(String folder, String fileName, String content, DefaultListModel<String> fileListModel) {
         try {
             File dir = new File(folder);
             if (!dir.exists()) {
                 dir.mkdirs();
             }
             String filePath = folder + "/" + fileName + ".txt";
-            FileWriter writer = new FileWriter(filePath);
-            writer.write(content);
-            writer.close();
-            JOptionPane.showMessageDialog(null, "Note saved successfully!");
+            File file = new File(filePath);
+            if (file.exists()) {
+                JOptionPane.showMessageDialog(null, "Filename already exists! Please change filename.");
+            } else {
+                FileWriter writer = new FileWriter(filePath);
+                writer.write(content);
+                writer.close();
+                fileListModel.addElement(fileName + ".txt");
+                JOptionPane.showMessageDialog(null, "Note saved successfully!");
+            }
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Error saving note: " + e.getMessage());
         }
     }
 
     //deleteNoteFile(String folder, String fileName) yöntemi, belirtilen klasördeki belirli bir dosyayı siler.
-    private void deleteNoteFile(String folder, String fileName) {
+    private void deleteNoteFile(String folder, String fileName, DefaultListModel<String> fileListModel) {
         try {
             String filePath = folder + "/" + fileName + ".txt";
             Files.deleteIfExists(Paths.get(filePath));
+            fileListModel.removeElement(fileName + ".txt");
             JOptionPane.showMessageDialog(null, "Note deleted successfully!");
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Error deleting note: " + e.getMessage());
