@@ -1,5 +1,5 @@
 public class App {
     public static void main(String[] args) {
-       new Note();
+        new Note(); // Note sınıfını başlatarak GUI'yi görüntüler.
     }
 }

@@ -2,26 +2,26 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-//Note sınıfı, kullanıcıların notlarını yönetmek için arayüz sağlar.
-
-
 public class Note {
-    private final JFrame frame;
-    private final UserManager userManager;//userManager adında bir UserManager nesnesi oluşturulur, bu nesne kullanıcı yönetimi için kullanılır.
+    private final JFrame frame; // Ana pencere
+    private final UserManager userManager; // Kullanıcı yönetimi için UserManager örneği
+    private User currentUser; // Şu anki oturum açmış kullanıcı
 
     public Note() {
-        userManager = new UserManager();//Kullanıcı yönetimini sağlayan nesnedir.
-        frame = new JFrame("Ink Byte");
-        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        frame.setSize(400, 250);
-        frame.setLayout(new GridLayout(2, 2));
-        frame.setLocationRelativeTo(null);
-        String iconPath = "InkByte_icon.png";
-        frame.setIconImage(new ImageIcon(iconPath).getImage());
+        userManager = new UserManager(); // UserManager sınıfının örneğini oluşturur.
+        frame = new JFrame("Ink Byte"); // Ana çerçeve oluşturulur.
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Çerçeve kapatma işlemi özelleştirilir.
+        frame.setSize(400, 250); // Çerçevenin boyutu ayarlanır.
+        frame.setLayout(new GridLayout(2, 2)); // Çerçeve düzeni ayarlanır.
+        frame.setLocationRelativeTo(null); // Çerçevenin ekranın ortasında açılması sağlanır.
+        String iconPath = "InkByte_icon.png"; // İkon dosyası yolu belirlenir.
+        frame.setIconImage(new ImageIcon(iconPath).getImage()); // İkon çerçeveye eklenir.
 
         frame.addWindowListener(new WindowAdapter() {
             @Override
@@ -29,44 +29,35 @@ public class Note {
                 int response = JOptionPane.showConfirmDialog(frame, "You are exiting the application. Are you sure?",
                         "Exit Confirmation", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
                 if (response == JOptionPane.YES_OPTION) {
-                    userManager.saveUsersToFile(); // Uygulama kapatıldığında kullanıcı verilerini kaydet
-                    System.exit(0); // Uygulamayı kapat
+                    userManager.saveUsersToFile(); // Kullanıcı verilerini kaydeder.
+                    System.exit(0); // Uygulamayı kapatır.
                 }
             }
         });
-        //    Kullanıcı uygulamayı kapatmaya çalıştığında, bir onay penceresi açılır. Kullanıcı "Evet" derse, uygulama kapanır.
 
+        JPanel userLoginScreen = new JPanel(new GridLayout(2, 2)); // Kullanıcı giriş ekranı paneli oluşturulur.
+        JTextField userName = new JTextField(); // Kullanıcı adı alanı oluşturulur.
+        JPasswordField password = new JPasswordField(); // Şifre alanı oluşturulur.
+        userLoginScreen.add(new JLabel("Username: ")); // Kullanıcı adı etiketi eklenir.
+        userLoginScreen.add(userName); // Kullanıcı adı alanı eklenir.
+        userLoginScreen.add(new JLabel("Password: ")); // Şifre etiketi eklenir.
+        userLoginScreen.add(password); // Şifre alanı eklenir.
 
-        JPanel userLoginScreen = new JPanel(new GridLayout(2, 2));//Kullanıcı adı ve şifre alanlarını içeren paneldir.
-        JTextField userName = new JTextField();
-        JPasswordField password = new JPasswordField();
-        userLoginScreen.add(new JLabel("Username : "));
-        userLoginScreen.add(userName);
-        userLoginScreen.add(new JLabel("Password : "));
-        userLoginScreen.add(password);
-
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 2));//Giriş ve kayıt düğmelerini içeren paneldir.
-        JButton loginButton = new JButton("Login");
-
-        //"Login" düğmesine basıldığında, kullanıcı adı ve şifre doğrulanır.
-        // Doğruysa notlar için yeni bir pencere açılır, değilse hata mesajı gösterilir.
-
-        JButton registerButton = new JButton("Register");
-
-        //"Register" düğmesine basıldığında, yeni bir kullanıcı oluşturulur ve kullanıcı bilgileri userManager aracılığıyla kaydedilir.
-
-        buttonPanel.add(loginButton);
-        buttonPanel.add(registerButton);
-
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2)); // Buton paneli oluşturulur.
+        JButton loginButton = new JButton("Login"); // Giriş butonu oluşturulur.
+        JButton registerButton = new JButton("Register"); // Kayıt butonu oluşturulur.
+        buttonPanel.add(loginButton); // Giriş butonu eklenir.
+        buttonPanel.add(registerButton); // Kayıt butonu eklenir.
 
         loginButton.addActionListener(e -> {
             String usernameInput = userName.getText();
             String passwordInput = new String(password.getPassword());
 
             if (userManager.authenticateUser(usernameInput, passwordInput)) {
-                openNewWindow();
+                currentUser = userManager.getUser(usernameInput); // Geçerli kullanıcı atanır.
+                openNewWindow(); // Yeni pencere açılır.
             } else {
-                JOptionPane.showMessageDialog(frame, "Invalid username or password!");
+                JOptionPane.showMessageDialog(frame, "Invalid username or password!"); // Hata mesajı gösterilir.
             }
         });
 
@@ -75,159 +66,149 @@ public class Note {
             String passwordInput = new String(password.getPassword());
 
             if (userManager.isUsernameTaken(usernameInput)) {
-                JOptionPane.showMessageDialog(frame, "Username already taken!");//Kullanıcı adı ve şifreyi doğrular. Doğruysa yeni bir pencere açar.
+                JOptionPane.showMessageDialog(frame, "Username already taken!"); // Hata mesajı gösterilir.
             } else {
-                userManager.addUser(new User(usernameInput, passwordInput));
-                userManager.saveUsersToFile();
-                JOptionPane.showMessageDialog(frame, "User registered successfully!");//Yeni bir kullanıcı kaydeder ve dosyaya kaydeder.
-            }
-        });
-
-        frame.add(userLoginScreen);
-        frame.add(buttonPanel);
-
-        frame.setVisible(true);
-    }
-
-    //Yeni bir pencere açar ve not alma arayüzünü yapılandırır.
-    private void openNewWindow() {
-
-        frame.dispose();
-        JFrame newFrame = new JFrame("Ink Byte");
-        newFrame.setSize(800, 600);
-        newFrame.setLocationRelativeTo(null);
-        newFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        String iconPath = "InkByte_icon.png";
-        ImageIcon icon = new ImageIcon(iconPath);
-        newFrame.setIconImage(icon.getImage());
-
-        JPanel leftPanel = new JPanel(new BorderLayout());//Klasörleri ve dosyaları listelemek için kullanılır.
-        DefaultListModel<String> folderListModel = new DefaultListModel<>();
-        folderListModel.addElement("Java");
-        folderListModel.addElement("Python");
-        JList<String> folderList = new JList<>(folderListModel);
-        leftPanel.add(new JScrollPane(folderList), BorderLayout.CENTER);
-
-        DefaultListModel<String> fileListModel = new DefaultListModel<>();
-        JList<String> fileList = new JList<>(fileListModel);
-        leftPanel.add(new JScrollPane(fileList), BorderLayout.EAST);
-
-        JPanel rightPanel = new JPanel(new BorderLayout());
-        JTextArea noteArea = new JTextArea();
-        rightPanel.add(new JScrollPane(noteArea), BorderLayout.CENTER);
-
-        JPanel fileNamePanel = new JPanel(new GridLayout(1, 2));
-        JLabel fileNameLabel = new JLabel("File Name:");
-        JTextField fileNameField = new JTextField();
-        fileNamePanel.add(fileNameLabel);
-        fileNamePanel.add(fileNameField);
-        rightPanel.add(fileNamePanel, BorderLayout.NORTH);
-
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 2));
-        JButton saveButton = new JButton("Save Note");
-        JButton deleteButton = new JButton("Delete Note");
-        buttonPanel.add(saveButton);
-        buttonPanel.add(deleteButton);
-        rightPanel.add(buttonPanel, BorderLayout.SOUTH);//Not alanı ve dosya adı alanı için kullanılır.
-
-        folderList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                fileListModel.clear();
-                String selectedFolder = folderList.getSelectedValue();
-                File folder = new File(selectedFolder);
-                if (folder.exists() && folder.isDirectory()) {
-                    for (File file : folder.listFiles()) {
-                        if (file.isFile() && file.getName().endsWith(".txt")) {
-                            fileListModel.addElement(file.getName());
-                        }
-                    }
+                try {
+                    String hashedPassword = User.hashPassword(passwordInput); // Şifre hashlenir.
+                    userManager.addUser(new User(usernameInput, hashedPassword)); // Yeni kullanıcı eklenir.
+                    userManager.saveUsersToFile(); // Kullanıcı verileri kaydedilir.
+                    JOptionPane.showMessageDialog(frame, "User registered successfully!"); // Başarı mesajı gösterilir.
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(frame, "Error registering user: " + ex.getMessage()); // Hata mesajı gösterilir.
                 }
             }
         });
 
+        frame.add(userLoginScreen); // Giriş ekranı paneli çerçeveye eklenir.
+        frame.add(buttonPanel); // Buton paneli çerçeveye eklenir.
+        frame.setVisible(true); // Çerçeve görünür yapılır.
+    }
+
+    private void openNewWindow() {
+        frame.dispose(); // Ana çerçeve kapatılır.
+        JFrame newFrame = new JFrame("Ink Byte"); // Yeni çerçeve oluşturulur.
+        newFrame.setSize(800, 600); // Yeni çerçevenin boyutu ayarlanır.
+        newFrame.setLocationRelativeTo(null); // Yeni çerçevenin ekranın ortasında açılması sağlanır.
+        newFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Yeni çerçevenin kapatılma işlemi ayarlanır.
+        String iconPath = "InkByte_icon.png"; // İkon dosyası yolu belirlenir.
+        ImageIcon icon = new ImageIcon(iconPath); // İkon oluşturulur.
+        newFrame.setIconImage(icon.getImage()); // İkon yeni çerçeveye eklenir.
+
+        JPanel leftPanel = new JPanel(new BorderLayout()); // Sol panel oluşturulur.
+        DefaultListModel<String> fileListModel = new DefaultListModel<>(); // Dosya listesi modeli oluşturulur.
+        JList<String> fileList = new JList<>(fileListModel); // Dosya listesi oluşturulur.
+        leftPanel.add(new JScrollPane(fileList), BorderLayout.CENTER); // Dosya listesi sol panele eklenir.
+
+        JPanel rightPanel = new JPanel(new BorderLayout()); // Sağ panel oluşturulur.
+        JTextArea noteArea = new JTextArea(); // Not alanı oluşturulur.
+        rightPanel.add(new JScrollPane(noteArea), BorderLayout.CENTER); // Not alanı sağ panele eklenir.
+
+        JPanel fileNamePanel = new JPanel(new GridLayout(1, 2)); // Dosya adı paneli oluşturulur.
+        JLabel fileNameLabel = new JLabel("File Name:"); // Dosya adı etiketi oluşturulur.
+        JTextField fileNameField = new JTextField(); // Dosya adı alanı oluşturulur.
+        fileNamePanel.add(fileNameLabel); // Dosya adı etiketi panel eklenir.
+        fileNamePanel.add(fileNameField); // Dosya adı alanı panel eklenir.
+        rightPanel.add(fileNamePanel, BorderLayout.NORTH); // Dosya adı paneli sağ panele eklenir.
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2)); // Buton paneli oluşturulur.
+        JButton saveButton = new JButton("Save Note"); // Kaydet butonu oluşturulur.
+        JButton deleteButton = new JButton("Delete Note"); // Sil butonu oluşturulur.
+        buttonPanel.add(saveButton); // Kaydet butonu buton paneline eklenir.
+        buttonPanel.add(deleteButton); // Sil butonu buton paneline eklenir.
+        rightPanel.add(buttonPanel, BorderLayout.SOUTH); // Buton paneli sağ panele eklenir.
+
+        loadUserNotes(fileListModel); // Kullanıcı notları yüklenir.
+
         fileList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                String selectedFolder = folderList.getSelectedValue();//Seçilen klasördeki .txt dosyalarını listelemek için kullanılır.
-                String selectedFile = fileList.getSelectedValue();//Seçilen dosyanın içeriğini not alanına yükler.
-                if (selectedFolder != null && selectedFile != null) {
+                String selectedFile = fileList.getSelectedValue();
+                if (selectedFile != null) {
                     try {
-                        String filePath = selectedFolder + "/" + selectedFile;
-                        String content = new String(Files.readAllBytes(Paths.get(filePath)));
-                        noteArea.setText(content);
-                        fileNameField.setText(selectedFile.replace(".txt", ""));
+                        String filePath = "notes/" + currentUser.getUsername() + "/" + selectedFile;
+                        String content = new String(Files.readAllBytes(Paths.get(filePath))); // Dosya içeriği okunur.
+                        noteArea.setText(content); // Not alanına içerik yazılır.
+                        fileNameField.setText(selectedFile.replace(".txt", "")); // Dosya adı alanı güncellenir.
                     } catch (IOException ex) {
-                        JOptionPane.showMessageDialog(newFrame, "Error loading note: " + ex.getMessage());
+                        JOptionPane.showMessageDialog(newFrame, "Error loading note: " + ex.getMessage()); // Hata mesajı gösterilir.
                     }
                 }
             }
         });
 
         saveButton.addActionListener(e -> {
-            String selectedFolder = folderList.getSelectedValue();
             String fileName = fileNameField.getText().trim();
-            if (selectedFolder != null && !fileName.isEmpty()) {
+            if (!fileName.isEmpty()) {
                 String noteContent = noteArea.getText();
-                saveNoteToFile(selectedFolder, fileName, noteContent, fileListModel);
-                noteArea.setText("");
-                fileNameField.setText("");
+                saveNoteToFile(currentUser.getUsername(), fileName, noteContent, fileListModel); // Not kaydedilir.
+                noteArea.setText(""); // Not alanı temizlenir.
+                fileNameField.setText(""); // Dosya adı alanı temizlenir.
             } else {
-                JOptionPane.showMessageDialog(newFrame, "Please select a folder and enter a file name!");
+                JOptionPane.showMessageDialog(newFrame, "Please enter a file name!"); // Hata mesajı gösterilir.
             }
         });
 
         deleteButton.addActionListener(e -> {
-            String selectedFolder = folderList.getSelectedValue();
             String fileName = fileNameField.getText().trim();
-            if (selectedFolder != null && !fileName.isEmpty()) {
-                deleteNoteFile(selectedFolder, fileName, fileListModel);
-                noteArea.setText("");
-                fileNameField.setText("");
+            if (!fileName.isEmpty()) {
+                deleteNoteFile(currentUser.getUsername(), fileName, fileListModel); // Not silinir.
+                noteArea.setText(""); // Not alanı temizlenir.
+                fileNameField.setText(""); // Dosya adı alanı temizlenir.
             } else {
-                JOptionPane.showMessageDialog(newFrame, "Please select a folder and enter a file name!");
+                JOptionPane.showMessageDialog(newFrame, "Please enter a file name!"); // Hata mesajı gösterilir.
             }
         });
 
-        newFrame.setLayout(new GridLayout(1, 2));
-        newFrame.add(leftPanel);
-        newFrame.add(rightPanel);
+        newFrame.setLayout(new GridLayout(1, 2)); // Yeni çerçeve düzeni ayarlanır.
+        newFrame.add(leftPanel); // Sol panel yeni çerçeveye eklenir.
+        newFrame.add(rightPanel); // Sağ panel yeni çerçeveye eklenir.
 
-        newFrame.setVisible(true);
+        newFrame.setVisible(true); // Yeni çerçeve görünür yapılır.
     }
 
-    //saveNoteToFile(String folder, String fileName, String content) yöntemi, belirli bir klasöre ve dosya adına sahip bir metin dosyasına notu kaydeder.
-    private void saveNoteToFile(String folder, String fileName, String content, DefaultListModel<String> fileListModel) {
-        try {
-            File dir = new File(folder);
-            if (!dir.exists()) {
-                dir.mkdirs();
+    private void loadUserNotes(DefaultListModel<String> fileListModel) {
+        fileListModel.clear(); // Dosya listesi temizlenir.
+        String userFolder = "notes/" + currentUser.getUsername(); // Kullanıcı notları klasörü belirlenir.
+        File folder = new File(userFolder);
+        if (folder.exists() && folder.isDirectory()) {
+            for (File file : folder.listFiles()) {
+                if (file.isFile() && file.getName().endsWith(".txt")) {
+                    fileListModel.addElement(file.getName()); // Dosya adı listeye eklenir.
+                }
             }
-            String filePath = folder + "/" + fileName + ".txt";
+        }
+    }
+
+    private void saveNoteToFile(String username, String fileName, String content, DefaultListModel<String> fileListModel) {
+        try {
+            String userFolder = "notes/" + username; // Kullanıcı notları klasörü belirlenir.
+            File dir = new File(userFolder);
+            if (!dir.exists()) {
+                dir.mkdirs(); // Klasör yoksa oluşturulur.
+            }
+            String filePath = userFolder + "/" + fileName + ".txt"; // Dosya yolu belirlenir.
             File file = new File(filePath);
             if (file.exists()) {
-                JOptionPane.showMessageDialog(null, "Filename already exists! Please change filename.");
+                JOptionPane.showMessageDialog(null, "Filename already exists! Please change filename."); // Hata mesajı gösterilir.
             } else {
-                FileWriter writer = new FileWriter(filePath);
-                writer.write(content);
-                writer.close();
-                fileListModel.addElement(fileName + ".txt");
-                JOptionPane.showMessageDialog(null, "Note saved successfully!");
+                FileWriter writer = new FileWriter(filePath); // Dosya yazıcısı oluşturulur.
+                writer.write(content); // İçerik yazılır.
+                writer.close(); // Dosya yazıcısı kapatılır.
+                fileListModel.addElement(fileName + ".txt"); // Dosya adı listeye eklenir.
+                JOptionPane.showMessageDialog(null, "Note saved successfully!"); // Başarı mesajı gösterilir.
             }
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Error saving note: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error saving note: " + e.getMessage()); // Hata mesajı gösterilir.
         }
     }
 
-    //deleteNoteFile(String folder, String fileName) yöntemi, belirtilen klasördeki belirli bir dosyayı siler.
-    private void deleteNoteFile(String folder, String fileName, DefaultListModel<String> fileListModel) {
+    private void deleteNoteFile(String username, String fileName, DefaultListModel<String> fileListModel) {
         try {
-            String filePath = folder + "/" + fileName + ".txt";
-            Files.deleteIfExists(Paths.get(filePath));
-            fileListModel.removeElement(fileName + ".txt");
-            JOptionPane.showMessageDialog(null, "Note deleted successfully!");
+            String filePath = "notes/" + username + "/" + fileName + ".txt"; // Dosya yolu belirlenir.
+            Files.deleteIfExists(Paths.get(filePath)); // Dosya silinir.
+            fileListModel.removeElement(fileName + ".txt"); // Dosya adı listeden kaldırılır.
+            JOptionPane.showMessageDialog(null, "Note deleted successfully!"); // Başarı mesajı gösterilir.
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Error deleting note: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error deleting note: " + e.getMessage()); // Hata mesajı gösterilir.
         }
     }
-
-
 }
